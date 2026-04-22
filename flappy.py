@@ -1,8 +1,9 @@
 import pygame, sys, random
 
 class Pipe:
-    def __init__(self, rect, counted=False):
-        self.rect = rect
+    def __init__(self, top, bottom, counted=False):
+        self.top_pipe = top
+        self.bottom_pipe = bottom
         self.counted = counted
 
     rect = None
@@ -21,35 +22,37 @@ def create_pipe():
     bottom_pipe = pipe_surface.get_rect(midtop=(2000, random_pipe_pos))
     top_pipe = pipe_surface.get_rect(midbottom=(2000, random_pipe_pos - 300))
     counted = False
-    rect = bottom_pipe, top_pipe
-    return Pipe(rect, counted)
+    return Pipe(top_pipe, bottom_pipe, counted)
 
 
 def move_pipes(pipes):
     for pipe in pipes:
-        pipe.rect.centerx -= 5
+        pipe.top_pipe.centerx -= 5
+        pipe.bottom_pipe.centerx -= 5
     return pipes
 
 
 def draw_pipes(pipes):
     for pipe in pipes:
-        if pipe.rect.bottom >= 1024:
-            screen.blit(pipe_surface, pipe.rect)
+        if pipe.bottom_pipe.bottom >= 1024:
+            screen.blit(pipe_surface, pipe.top_pipe)
+            screen.blit(pipe_surface, pipe.bottom_pipe)
         else:
             flip_pipe = pygame.transform.flip(pipe_surface, False, True)
-            screen.blit(flip_pipe, pipe.rect)
+            screen.blit(flip_pipe, pipe.top_pipe)
+            screen.blit(flip_pipe, pipe.bottom_pipe)
 
 
 def remove_pipes(pipes):
     for pipe in pipes:
-        if pipe.rect.centerx == -600:
+        if pipe.top_pipe.centerx == -600:
             pipes.remove(pipe)
     return pipes
 
 
 def check_collision(pipes):
     for pipe in pipes:
-        if bird_rect.colliderect(pipe.rect.bottom_pipe, pipe.rect.top_pipe):
+        if bird_rect.colliderect(pipe.top_pipe) or bird_rect.colliderect(pipe.bottom_pipe):
             death_sound.play()
             return False
 
@@ -61,10 +64,10 @@ def check_collision(pipes):
 
 def check_passed_pipe(pipes):
     for pipe in pipes:
-        print(pipe.rect.x)
+        print(pipe.top_pipe.x)
         if pipe.counted:
             continue
-        if pipe.rect.bottom_pipe.x > bird_rect.x:
+        if pipe.bottom_pipe.x > bird_rect.x:
             pipe.counted = True
             return True
 
@@ -174,7 +177,7 @@ while True:
                 sys.exit()
 
         if event.type == SPAWNPIPE:
-            pipe_list.extend(create_pipe())
+            pipe_list.append (create_pipe())
 
         if event.type == BIRDFLAP:
             if bird_index < 2:
