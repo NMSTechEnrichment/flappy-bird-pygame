@@ -6,7 +6,6 @@ class Pipe:
         self.bottom_pipe = bottom
         self.counted = counted
 
-    rect = None
     counted = False
 
 def draw_floor():
@@ -34,13 +33,16 @@ def move_pipes(pipes):
 
 def draw_pipes(pipes):
     for pipe in pipes:
-        if pipe.bottom_pipe.bottom >= 1024:
-            screen.blit(pipe_surface, pipe.top_pipe)
-            screen.blit(pipe_surface, pipe.bottom_pipe)
-        else:
-            flip_pipe = pygame.transform.flip(pipe_surface, False, True)
-            screen.blit(flip_pipe, pipe.top_pipe)
-            screen.blit(flip_pipe, pipe.bottom_pipe)
+        screen.blit(pipe_surface, pipe.top_pipe)
+        screen.blit(pipe_surface_bottom, pipe.bottom_pipe)
+
+        # if pipe.bottom_pipe.bottom >= 1024:
+        #     screen.blit(pipe_surface, pipe.top_pipe)
+        #     screen.blit(pipe_surface, pipe.bottom_pipe)
+        # else:
+        #     flip_pipe = pygame.transform.flip(pipe_surface, False, True)
+        #     screen.blit(flip_pipe, pipe.top_pipe)
+        #     screen.blit(flip_pipe, pipe.bottom_pipe)
 
 
 def remove_pipes(pipes):
@@ -64,10 +66,9 @@ def check_collision(pipes):
 
 def check_passed_pipe(pipes):
     for pipe in pipes:
-        print(pipe.top_pipe.x)
         if pipe.counted:
             continue
-        if pipe.bottom_pipe.x > bird_rect.x:
+        if pipe.bottom_pipe.x < bird_rect.x:
             pipe.counted = True
             return True
 
@@ -116,7 +117,7 @@ game_font = pygame.font.Font('04B_19.ttf', 40)
 gravity = 0.25
 bird_movement = 0
 game_active = True
-score = 1
+score = 0
 high_score = 0
 
 bg_surface = pygame.image.load('assets/background-day-960.png').convert() # TODO Wide background here.
@@ -143,6 +144,11 @@ pygame.time.set_timer(BIRDFLAP, 200)
 
 pipe_surface = pygame.image.load('assets/pipe-green.png')
 pipe_surface = pygame.transform.scale2x(pipe_surface)
+pipe_surface = pygame.transform.flip(pipe_surface, False, True)
+
+pipe_surface_bottom = pygame.image.load('assets/pipe-green.png')
+pipe_surface_bottom = pygame.transform.scale2x(pipe_surface_bottom)
+
 pipe_list = []
 SPAWNPIPE = pygame.USEREVENT
 pygame.time.set_timer(SPAWNPIPE, 2000)
@@ -171,7 +177,7 @@ while True:
                 pipe_list.clear()
                 bird_rect.center = (100, 512)
                 bird_movement = 0
-                score = 1
+                score = 0
             if event.key == pygame.K_ESCAPE:
                 pygame.quit()
                 sys.exit()
