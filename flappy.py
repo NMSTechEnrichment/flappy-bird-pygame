@@ -1,76 +1,128 @@
-import pygame, sys, random 
+import pygame, sys, random, json, os
+
+class Pipe:
+    def __init__(self, top, bottom, counted=False):
+        self.top_pipe = top
+        self.bottom_pipe = bottom
+        self.counted = counted
+
+    counted = False
 
 def draw_floor():
-	screen.blit(floor_surface,(floor_x_pos,900))
-	screen.blit(floor_surface,(floor_x_pos + 576,900))
+    screen.blit(floor_surface, (floor_x_pos, 900))
+    screen.blit(floor_surface, (floor_x_pos + 576, 900))
+    screen.blit(floor_surface, (floor_x_pos + 1152, 900))
+    screen.blit(floor_surface, (floor_x_pos + 1728, 900))
+    screen.blit(floor_surface, (floor_x_pos + 2304, 900))
+
 
 def create_pipe():
-	random_pipe_pos = random.choice(pipe_height)
-	bottom_pipe = pipe_surface.get_rect(midtop = (700,random_pipe_pos))
-	top_pipe = pipe_surface.get_rect(midbottom = (700,random_pipe_pos - 300))
-	return bottom_pipe,top_pipe
+    random_pipe_pos = random.choice(pipe_height)
+    bottom_pipe = pipe_surface.get_rect(midtop=(2000, random_pipe_pos))
+    top_pipe = pipe_surface.get_rect(midbottom=(2000, random_pipe_pos - 300))
+    counted = False
+    return Pipe(top_pipe, bottom_pipe, counted)
+
 
 def move_pipes(pipes):
-	for pipe in pipes:
-		pipe.centerx -= 5
-	return pipes
+    for pipe in pipes:
+        pipe.top_pipe.centerx -= 5
+        pipe.bottom_pipe.centerx -= 5
+    return pipes
+
 
 def draw_pipes(pipes):
-	for pipe in pipes:
-		if pipe.bottom >= 1024:
-			screen.blit(pipe_surface,pipe)
-		else:
-			flip_pipe = pygame.transform.flip(pipe_surface,False,True)
-			screen.blit(flip_pipe,pipe)
+    for pipe in pipes:
+        screen.blit(pipe_surface, pipe.top_pipe)
+        screen.blit(pipe_surface_bottom, pipe.bottom_pipe)
+
+        # if pipe.bottom_pipe.bottom >= 1024:
+        #     screen.blit(pipe_surface, pipe.top_pipe)
+        #     screen.blit(pipe_surface, pipe.bottom_pipe)
+        # else:
+        #     flip_pipe = pygame.transform.flip(pipe_surface, False, True)
+        #     screen.blit(flip_pipe, pipe.top_pipe)
+        #     screen.blit(flip_pipe, pipe.bottom_pipe)
+
+
 def remove_pipes(pipes):
-	for pipe in pipes:
-		if pipe.centerx == -600:
-			pipes.remove(pipe)
-	return pipes
+    for pipe in pipes:
+        if pipe.top_pipe.centerx == -600:
+            pipes.remove(pipe)
+    return pipes
+
+
 def check_collision(pipes):
-	for pipe in pipes:
-		if bird_rect.colliderect(pipe):
-			death_sound.play()
-			return False
+    for pipe in pipes:
+        if bird_rect.colliderect(pipe.top_pipe) or bird_rect.colliderect(pipe.bottom_pipe):
+            death_sound.play()
+            return False
 
-	if bird_rect.top <= -100 or bird_rect.bottom >= 900:
-		return False
+    if bird_rect.top <= -100 or bird_rect.bottom >= 900:
+        return False
 
-	return True
+    return True
+
+
+def check_passed_pipe(pipes):
+    for pipe in pipes:
+        if pipe.counted:
+            continue
+        if pipe.bottom_pipe.x < bird_rect.x:
+            pipe.counted = True
+            return True
+
+    return False
+
 
 def rotate_bird(bird):
-	new_bird = pygame.transform.rotozoom(bird,-bird_movement * 3,1)
-	return new_bird
+    new_bird = pygame.transform.rotozoom(bird, -bird_movement * 2, 1)
+    return new_bird
+
 
 def bird_animation():
-	new_bird = bird_frames[bird_index]
-	new_bird_rect = new_bird.get_rect(center = (100,bird_rect.centery))
-	return new_bird,new_bird_rect
+    new_bird = bird_frames[bird_index]
+    new_bird_rect = new_bird.get_rect(center=(100, bird_rect.centery))
+    return new_bird, new_bird_rect
+
 
 def score_display(game_state):
-	if game_state == 'main_game':
-		score_surface = game_font.render(str(int(score)),True,(255,255,255))
-		score_rect = score_surface.get_rect(center = (288,100))
-		screen.blit(score_surface,score_rect)
-	if game_state == 'game_over':
-		score_surface = game_font.render(f'Score: {int(score)}' ,True,(255,255,255))
-		score_rect = score_surface.get_rect(center = (288,100))
-		screen.blit(score_surface,score_rect)
+    if game_state == 'main_game':
+        score_surface = game_font.render(str(int(score)), True, (255, 255, 255))
+        score_rect = score_surface.get_rect(center=(960, 100))
+        screen.blit(score_surface, score_rect)
+    if game_state == 'game_over':
+        score_surface = game_font.render(f'Score: {int(score)}', True, (255, 255, 255))
+        score_rect = score_surface.get_rect(center=(960, 100))
+        screen.blit(score_surface, score_rect)
 
-		high_score_surface = game_font.render(f'High score: {int(high_score)}',True,(255,255,255))
-		high_score_rect = high_score_surface.get_rect(center = (288,850))
-		screen.blit(high_score_surface,high_score_rect)
+        high_score_surface = game_font.render(f'Session High score: {int(high_score)}, Super High Score: {int(data["high_score"])}', True, (255, 255, 255))
+        high_score_rect = high_score_surface.get_rect(center=(960, 850))
+        screen.blit(high_score_surface, high_score_rect)
+
 
 def update_score(score, high_score):
-	if score > high_score:
-		high_score = score
-	return high_score
+    if score > high_score:
+        high_score = score
+    return high_score
 
-pygame.mixer.pre_init(frequency = 44100, size = 16, channels = 1, buffer = 512)
+def save_high_score (data_map, high_score):
+    if high_score < data["high_score"]:
+        return
+
+    data_map['high_score'] = high_score
+    # Write JSON to file with pretty formatting
+    with open("conf.json", 'w', encoding='utf-8') as file:
+        json.dump(data_map, file, indent=4, sort_keys=True, ensure_ascii=False)
+
+def load_high_score():
+    with open("conf.json", 'r', encoding='utf-8') as file:
+        return json.load(file)
+pygame.mixer.pre_init(frequency=44100, size=16, channels=1, buffer=512)
 pygame.init()
-screen = pygame.display.set_mode((576,1024))
+screen = pygame.display.set_mode((1920, 1080))
 clock = pygame.time.Clock()
-game_font = pygame.font.Font('04B_19.ttf',40)
+game_font = pygame.font.Font('04B_19.ttf', 40)
 
 # Game Variables
 gravity = 0.25
@@ -78,24 +130,24 @@ bird_movement = 0
 game_active = True
 score = 0
 high_score = 0
-
-bg_surface = pygame.image.load('assets/background-day.png').convert()
+data = load_high_score()
+bg_surface = pygame.image.load('assets/background-day-960.png').convert() # TODO Wide background here.
 bg_surface = pygame.transform.scale2x(bg_surface)
 
 floor_surface = pygame.image.load('assets/base.png').convert()
 floor_surface = pygame.transform.scale2x(floor_surface)
 floor_x_pos = 0
 
-bird_downflap = pygame.transform.scale2x(pygame.image.load('assets/bluebird-downflap.png').convert_alpha())
+bird_downflap = pygame.transform.scale2x(pygame.image.load('assets/bluebird-downflap.png').convert_alpha()) # TODO Simon's face
 bird_midflap = pygame.transform.scale2x(pygame.image.load('assets/bluebird-midflap.png').convert_alpha())
 bird_upflap = pygame.transform.scale2x(pygame.image.load('assets/bluebird-upflap.png').convert_alpha())
-bird_frames = [bird_downflap,bird_midflap,bird_upflap]
+bird_frames = [bird_downflap, bird_midflap, bird_upflap]
 bird_index = 0
 bird_surface = bird_frames[bird_index]
-bird_rect = bird_surface.get_rect(center = (100,512))
+bird_rect = bird_surface.get_rect(center=(100, 512))
 
 BIRDFLAP = pygame.USEREVENT + 1
-pygame.time.set_timer(BIRDFLAP,200)
+pygame.time.set_timer(BIRDFLAP, 200)
 
 # bird_surface = pygame.image.load('assets/bluebird-midflap.png').convert_alpha()
 # bird_surface = pygame.transform.scale2x(bird_surface)
@@ -103,13 +155,18 @@ pygame.time.set_timer(BIRDFLAP,200)
 
 pipe_surface = pygame.image.load('assets/pipe-green.png')
 pipe_surface = pygame.transform.scale2x(pipe_surface)
+pipe_surface = pygame.transform.flip(pipe_surface, False, True)
+
+pipe_surface_bottom = pygame.image.load('assets/pipe-green.png')
+pipe_surface_bottom = pygame.transform.scale2x(pipe_surface_bottom)
+
 pipe_list = []
 SPAWNPIPE = pygame.USEREVENT
-pygame.time.set_timer(SPAWNPIPE,1200)
-pipe_height = [400,600,800]
+pygame.time.set_timer(SPAWNPIPE, 2000)
+pipe_height = [400, 600, 800]
 
 game_over_surface = pygame.transform.scale2x(pygame.image.load('assets/message.png').convert_alpha())
-game_over_rect = game_over_surface.get_rect(center = (288,512))
+game_over_rect = game_over_surface.get_rect(center=(960, 512))
 
 flap_sound = pygame.mixer.Sound('sound/sfx_wing.wav')
 death_sound = pygame.mixer.Sound('sound/sfx_hit.wav')
@@ -117,66 +174,73 @@ score_sound = pygame.mixer.Sound('sound/sfx_point.wav')
 score_sound_countdown = 100
 
 while True:
-	for event in pygame.event.get():
-		if event.type == pygame.QUIT:
-			pygame.quit()
-			sys.exit()
-		if event.type == pygame.KEYDOWN:
-			if event.key == pygame.K_SPACE and game_active:
-				bird_movement = 0
-				bird_movement -= 12
-				flap_sound.play()
-			if event.key == pygame.K_SPACE and game_active == False:
-				game_active = True
-				pipe_list.clear()
-				bird_rect.center = (100,512)
-				bird_movement = 0
-				score = 0
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            save_high_score(data, high_score)
+            pygame.quit()
+            sys.exit()
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_SPACE and game_active:
+                bird_movement = 0
+                bird_movement -= 8
+                flap_sound.play()
+            if event.key == pygame.K_SPACE and game_active == False:
+                game_active = True
+                pipe_list.clear()
+                bird_rect.center = (100, 512)
+                bird_movement = 0
+                score = 0
+            if event.key == pygame.K_ESCAPE:
+                save_high_score(data,high_score)
+                pygame.quit()
+                sys.exit()
 
-		if event.type == SPAWNPIPE:
-			pipe_list.extend(create_pipe())
+        if event.type == SPAWNPIPE:
+            pipe_list.append (create_pipe())
 
-		if event.type == BIRDFLAP:
-			if bird_index < 2:
-				bird_index += 1
-			else:
-				bird_index = 0
+        if event.type == BIRDFLAP:
+            if bird_index < 2:
+                bird_index += 1
+            else:
+                bird_index = 0
 
-			bird_surface,bird_rect = bird_animation()
+            bird_surface, bird_rect = bird_animation()
 
-	screen.blit(bg_surface,(0,0))
+    screen.blit(bg_surface, (0, 0))
 
-	if game_active:
-		# Bird
-		bird_movement += gravity
-		rotated_bird = rotate_bird(bird_surface)
-		bird_rect.centery += bird_movement
-		screen.blit(rotated_bird,bird_rect)
-		game_active = check_collision(pipe_list)
+    if game_active:
+        # Bird
+        bird_movement += gravity
+        rotated_bird = rotate_bird(bird_surface)
+        bird_rect.centery += bird_movement
+        screen.blit(rotated_bird, bird_rect)
+        game_active = check_collision(pipe_list)
 
-		# Pipes
-		pipe_list = move_pipes(pipe_list)
-		pipe_list = remove_pipes(pipe_list)
-		draw_pipes(pipe_list)
-		
-		score += 0.01
-		score_display('main_game')
-		score_sound_countdown -= 1
-		if score_sound_countdown <= 0:
-			score_sound.play()
-			score_sound_countdown = 100
-	else:
-		screen.blit(game_over_surface,game_over_rect)
-		high_score = update_score(score,high_score)
-		score_display('game_over')
+        passedPipe = check_passed_pipe(pipe_list)
+        if passedPipe:
+            score += 1.0
 
+        # Pipes
+        pipe_list = move_pipes(pipe_list)
+        pipe_list = remove_pipes(pipe_list)
+        draw_pipes(pipe_list)
 
-	# Floor
-	floor_x_pos -= 1
-	draw_floor()
-	if floor_x_pos <= -576:
-		floor_x_pos = 0
-	
+        # score += 0.01
+        score_display('main_game')
+        score_sound_countdown -= 1
+    # if score_sound_countdown <= 0:
+    # score_sound.play()
+    # score_sound_countdown = 100
+    else:
+        screen.blit(game_over_surface, game_over_rect)
+        high_score = update_score(score, high_score)
+        score_display('game_over')
 
-	pygame.display.update()
-	clock.tick(120)
+    # Floor
+    floor_x_pos -= 1
+    draw_floor()
+    if floor_x_pos <= -576:
+        floor_x_pos = 0
+
+    pygame.display.update()
+    clock.tick(60)
