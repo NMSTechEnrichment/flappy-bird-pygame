@@ -1,4 +1,8 @@
-import pygame, sys, random 
+from timeit import repeat
+
+import pygame, sys, random
+
+
 
 def draw_floor():
 	screen.blit(floor_surface,(floor_x_pos,900))
@@ -68,7 +72,7 @@ def update_score(score, high_score):
 
 pygame.mixer.pre_init(frequency = 44100, size = 16, channels = 1, buffer = 512)
 pygame.init()
-screen = pygame.display.set_mode((576,1024))
+screen = pygame.display.set_mode((1920,1080))
 clock = pygame.time.Clock()
 game_font = pygame.font.Font('04B_19.ttf',40)
 
@@ -78,17 +82,19 @@ bird_movement = 0
 game_active = True
 score = 0
 high_score = 0
+Randback = ['assets/kyle_background.png','assets/zach_background.png','assets/owen_background.png','assets/simon_background.png']
+i = 0
 
-bg_surface = pygame.image.load('assets/background-day.png').convert()
+bg_surface = pygame.image.load(random.choice(Randback)).convert()
 bg_surface = pygame.transform.scale2x(bg_surface)
 
-floor_surface = pygame.image.load('assets/base.png').convert()
+floor_surface = pygame.image.load('assets/zachbase.png').convert()
 floor_surface = pygame.transform.scale2x(floor_surface)
 floor_x_pos = 0
 
-bird_downflap = pygame.transform.scale2x(pygame.image.load('assets/bluebird-downflap.png').convert_alpha())
-bird_midflap = pygame.transform.scale2x(pygame.image.load('assets/bluebird-midflap.png').convert_alpha())
-bird_upflap = pygame.transform.scale2x(pygame.image.load('assets/bluebird-upflap.png').convert_alpha())
+bird_downflap = pygame.transform.scale2x(pygame.image.load('assets/wide_kyle.png').convert_alpha())
+bird_midflap = pygame.transform.scale2x(pygame.image.load('assets/wide_kyle.png').convert_alpha())
+bird_upflap = pygame.transform.scale2x(pygame.image.load('assets/wide_kyle.png').convert_alpha())
 bird_frames = [bird_downflap,bird_midflap,bird_upflap]
 bird_index = 0
 bird_surface = bird_frames[bird_index]
@@ -101,7 +107,7 @@ pygame.time.set_timer(BIRDFLAP,200)
 # bird_surface = pygame.transform.scale2x(bird_surface)
 # bird_rect = bird_surface.get_rect(center = (100,512))
 
-pipe_surface = pygame.image.load('assets/pipe-green.png')
+pipe_surface = pygame.image.load('assets/simonpipe.png')
 pipe_surface = pygame.transform.scale2x(pipe_surface)
 pipe_list = []
 SPAWNPIPE = pygame.USEREVENT
@@ -111,9 +117,8 @@ pipe_height = [400,600,800]
 game_over_surface = pygame.transform.scale2x(pygame.image.load('assets/message.png').convert_alpha())
 game_over_rect = game_over_surface.get_rect(center = (288,512))
 
-flap_sound = pygame.mixer.Sound('sound/sfx_wing.wav')
-death_sound = pygame.mixer.Sound('sound/sfx_hit.wav')
-score_sound = pygame.mixer.Sound('sound/sfx_point.wav')
+death_sound = pygame.mixer.Sound('sound/ow.wav')
+score_sound = pygame.mixer.Sound('sound/Recording-_2_.wav ')
 score_sound_countdown = 100
 
 while True:
@@ -124,9 +129,15 @@ while True:
 		if event.type == pygame.KEYDOWN:
 			if event.key == pygame.K_SPACE and game_active:
 				bird_movement = 0
-				bird_movement -= 12
-				flap_sound.play()
+				bird_movement -= 9
+				#flap_sound.play()
+			if event.key == pygame.K_ESCAPE:
+				pygame.quit()
+				sys.exit()
 			if event.key == pygame.K_SPACE and game_active == False:
+				bg_surface = pygame.image.load(random.choice(Randback)).convert()
+				bg_surface = pygame.transform.scale2x(bg_surface)
+				screen.blit(bg_surface, (0, 0))
 				game_active = True
 				pipe_list.clear()
 				bird_rect.center = (100,512)
@@ -169,8 +180,13 @@ while True:
 		screen.blit(game_over_surface,game_over_rect)
 		high_score = update_score(score,high_score)
 		score_display('game_over')
-
-
+		#bg_surface = pygame.image.load(random.choice(Randback)).convert()
+		#bg_surface = pygame.transform.scale2x(bg_surface)
+		#screen.blit(bg_surface, (0, 0))
+		#while i < 1:
+		#	if event.key == pygame.K_SPACE:
+		#		i = 2
+		#i = 0
 	# Floor
 	floor_x_pos -= 1
 	draw_floor()
